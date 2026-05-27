@@ -1,4 +1,4 @@
-# MECOM HMI ver02
+# MECOM HMI ver02(mecomhmi에서 시작정지버튼 상태 plc와연동, 데이터 3년이상기록물 삭제., 등 업데이트 버전)
 
 Streamlit 기반 HMI/모니터링 앱과 Modbus RTU 데이터 수집 워커입니다.
 
