@@ -1,0 +1,3 @@
+python c:\project\antigravity\mecom_hmi\modbus_worker.py
+
+streamlit run c:\project\antigravity\mecom_hmi\app.py

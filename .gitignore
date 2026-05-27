@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+mecom_data.db
+mecom_hmi.log
+realtime_data.json
+control_command.json
+alarm_history.csv
+history_data.csv
+history_data_backup.csv
+mecomhmi_plc/mecomhmi_plc.state
+mecomhmi_plc/*.xgwx_bkx*
+password.json

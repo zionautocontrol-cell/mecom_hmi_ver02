@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .system-wrapper {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    .system-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-image: url('{{BACKGROUND_IMAGE}}');
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+      }
+
+      100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+      }
+    }
+
+    /* -----------------------------------------------------
+     애니메이션 공통 스타일 (펌프)
+     ----------------------------------------------------- */
+    .hp-fan,
+    .cp-impeller,
+    .sub-pump {
+      position: absolute;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+
+    /* 일반 펌프 십자가 (흰색) */
+    .cp-impeller::before,
+    .cp-impeller::after,
+    .sub-pump::before,
+    .sub-pump::after {
+      content: '';
+      position: absolute;
+      background: #ffffff;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+    }
+
+    /* 히트펌프 십자가 (너무 튀지 않게 약간 흐리게) */
+    .hp-fan::before,
+    .hp-fan::after {
+      content: '';
+      position: absolute;
+      background: #aaaaaa;
+      border-radius: 2px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .hp-fan::before,
+    .cp-impeller::before,
+    .sub-pump::before {
+      width: 4.5px;
+      height: 85%;
+    }
+
+    .hp-fan::after,
+    .cp-impeller::after,
+    .sub-pump::after {
+      width: 85%;
+      height: 4.5px;
+    }
+
+    .hp-fan {
+      width: 3.5%;
+      box-shadow: 0 0 15px rgba(255, 140, 0, 0.7);
+      animation: spin 1s linear infinite;
+    }
+
+    .cp-impeller {
+      width: 2.5%;
+      box-shadow: 0 0 15px rgba(255, 50, 50, 0.7);
+      animation: spin 0.6s linear infinite;
+    }
+
+    .sub-pump {
+      width: 2.5%;
+      box-shadow: 0 0 15px rgba(30, 144, 255, 0.7);
+      animation: spin 0.6s linear infinite;
+    }
+
+    /* 정지 상태 클래스 (통신으로 OFF 된 경우) */
+    .paused {
+      animation-play-state: paused !important;
+      box-shadow: 0 0 5px rgba(100, 100, 100, 0.3) !important;
+    }
+
+    .paused::before,
+    .paused::after {
+      background: #888 !important;
+      box-shadow: none !important;
+    }
+
+    /* -----------------------------------------------------
+     타이포그래피 및 시계 UI
+     ----------------------------------------------------- */
+    .live-clock {
+      position: absolute;
+      top: 2.7%;
+      right: 2.0%;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 1.1vw;
+      font-weight: 600;
+      letter-spacing: 1px;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 0.5vw 1vw;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+    }
+
+    .zone-label {
+      position: absolute;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 1.2vw;
+      font-weight: 800;
+      text-shadow: 0 0 15px rgba(255, 140, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(4px);
+      padding: 0.3vw 1.5vw;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      letter-spacing: 2px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+
+    /* -----------------------------------------------------
+     디지털 온도 및 유량 표시기 (Temp/Flow Box)
+     ----------------------------------------------------- */
+    .temp-box,
+    .flow-box {
+      position: absolute;
+      background: rgba(15, 20, 25, 0.9);
+      border: 1px solid #555;
+      border-radius: 6px;
+      padding: 0.4vw 0.8vw;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 1.1vw;
+      font-weight: bold;
+      transform: translate(-50%, -50%);
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+      z-index: 10;
+    }
+
+    .temp-box.orange {
+      color: #ff9900;
+      box-shadow: 0 0 8px rgba(255, 153, 0, 0.3) inset, 0 4px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .temp-box.cyan {
+      color: #00ffcc;
+      box-shadow: 0 0 8px rgba(0, 255, 204, 0.3) inset, 0 4px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .flow-box.green {
+      color: #33ff33;
+      box-shadow: 0 0 8px rgba(51, 255, 51, 0.3) inset, 0 4px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    /* -----------------------------------------------------
+     수위 표시 램프 (개별 하우징 디자인)
+     ----------------------------------------------------- */
+    .level-sensor-group {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      gap: 3.5vw;
+      z-index: 10;
+    }
+
+    .level-sensor-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4vw;
+    }
+
+    .level-housing {
+      background: linear-gradient(145deg, #333, #111);
+      border: 1px solid #000;
+      border-radius: 8px;
+      padding: 0.6vw 0.25vw;
+      box-shadow: inset 0 0 5px rgba(0, 0, 0, 1), 0 3px 5px rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .level-lamp {
+      width: 0.7vw;
+      height: 0.7vw;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+
+    .level-lamp.on {
+      background: radial-gradient(circle, #fff 10%, #ff3b3b 50%, #cc0000 100%);
+      box-shadow: 0 0 12px #ff3b3b, 0 0 20px #ff0000;
+    }
+
+    .level-lamp.off {
+      background: radial-gradient(circle, #555 10%, #220000 80%);
+      box-shadow: inset 0 0 4px #000;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="system-wrapper">
+    <div class="system-container">
+
+      <!-- 실시간 시계 -->
+      <div id="clock" class="live-clock"></div>
+
+      <!-- 세련된 동 표시 -->
+      <div class="zone-label" style="top: 7%; left: 68%;">ZONE 2 (2동)</div>
+      <div class="zone-label" style="top: 38%; left: 68%;">ZONE 1 (1동)</div>
+
+
+
+      <!-- 디지털 온도 표시기 및 유량계 -->
+      <!-- 2동 -->
+      <div class="temp-box orange" data-word="7" data-unit="°C" style="top: 15%; left: 60%;">{{W2}} °C</div>
+      <div class="temp-box cyan" data-word="2" data-unit="°C" style="top: 13%; left: 82%;">{{W3}} °C</div>
+      <div class="temp-box orange" data-word="6" data-unit="°C" style="top: 29%; left: 60%;">{{W6}} °C</div>
+      <div class="flow-box green" data-word="9" data-unit="㎥/h" style="top: 29%; left: 68.5%;">{{W9}} ㎥/h</div>
+      <div class="temp-box cyan" data-word="3" data-unit="°C" style="top: 29%; left: 82%;">{{W7}} °C</div>
+      <!-- 1동 -->
+      <div class="temp-box orange" data-word="5" data-unit="°C" style="top: 45%; left: 60%;">{{W0}} °C</div>
+      <div class="temp-box cyan" data-word="0" data-unit="°C" style="top: 46%; left: 82%;">{{W1}} °C</div>
+      <div class="temp-box orange" data-word="4" data-unit="°C" style="top: 59%; left: 60%;">{{W4}} °C</div>
+      <div class="flow-box green" data-word="8" data-unit="㎥/h" style="top: 59%; left: 68.5%;">{{W8}} ㎥/h</div>
+      <div class="temp-box cyan" data-word="1" data-unit="°C" style="top: 65%; left: 82%;">{{W5}} °C</div>
+
+      <!-- 2동 (위쪽 줄) 히트펌프 8대 -->
+      <div class="hp-fan {{B7}}" data-bit="7" style="top: 10.5%; left: 9.6%;"></div>
+      <div class="hp-fan {{B8}}" data-bit="8" style="top: 10.5%; left: 16.0%;"></div>
+      <div class="hp-fan {{B9}}" data-bit="9" style="top: 10.5%; left: 22.3%;"></div>
+      <div class="hp-fan {{B10}}" data-bit="10" style="top: 10.5%; left: 28.4%;"></div>
+      <div class="hp-fan {{B11}}" data-bit="11" style="top: 10.5%; left: 34.8%;"></div>
+      <div class="hp-fan {{B12}}" data-bit="12" style="top: 10.5%; left: 41.4%;"></div>
+      <div class="hp-fan {{B13}}" data-bit="13" style="top: 10.5%; left: 47.8%;"></div>
+      <div class="hp-fan {{B14}}" data-bit="14" style="top: 10.5%; left: 54.2%;"></div>
+
+      <!-- 1동 (아래쪽 줄) 히트펌프 7대 -->
+      <div class="hp-fan {{B0}}" data-bit="0" style="top: 39.5%; left: 9.6%;"></div>
+      <div class="hp-fan {{B1}}" data-bit="1" style="top: 39.5%; left: 16.0%;"></div>
+      <div class="hp-fan {{B2}}" data-bit="2" style="top: 39.5%; left: 22.3%;"></div>
+      <div class="hp-fan {{B3}}" data-bit="3" style="top: 39.5%; left: 28.4%;"></div>
+      <div class="hp-fan {{B4}}" data-bit="4" style="top: 39.5%; left: 34.8%;"></div>
+      <div class="hp-fan {{B5}}" data-bit="5" style="top: 39.5%; left: 41.4%;"></div>
+      <div class="hp-fan {{B6}}" data-bit="6" style="top: 39.5%; left: 47.8%;"></div>
+
+      <!-- 2동 (위쪽 줄) 순환펌프 4대 -->
+      <div class="cp-impeller {{B19}}" data-bit="19" style="top: 25.0%; left: 16.0%;"></div>
+      <div class="cp-impeller {{B20}}" data-bit="20" style="top: 25.0%; left: 27.8%;"></div>
+      <div class="cp-impeller {{B21}}" data-bit="21" style="top: 25.0%; left: 39.7%;"></div>
+      <div class="cp-impeller {{B22}}" data-bit="22" style="top: 25.0%; left: 51.6%;"></div>
+
+      <!-- 1동 (아래쪽 줄) 순환펌프 4대 -->
+      <div class="cp-impeller {{B15}}" data-bit="15" style="top: 55.5%; left: 16.0%;"></div>
+      <div class="cp-impeller {{B16}}" data-bit="16" style="top: 55.5%; left: 27.8%;"></div>
+      <div class="cp-impeller {{B17}}" data-bit="17" style="top: 55.5%; left: 39.7%;"></div>
+      <div class="cp-impeller {{B18}}" data-bit="18" style="top: 55.5%; left: 51.6%;"></div>
+
+      <!-- 하단 교반기 3대 (빨간색) -->
+      <div class="cp-impeller {{B23}}" data-bit="23" style="top: 96.0%; left: 39.6%;"></div>
+      <div class="cp-impeller {{B24}}" data-bit="24" style="top: 96.0%; left: 45.6%;"></div>
+      <div class="cp-impeller {{B25}}" data-bit="25" style="top: 96.0%; left: 51.6%;"></div>
+
+      <!-- 하단 수중탱크 4대 (파란색) -->
+      <div class="sub-pump {{B26}}" data-bit="26" style="top: 96.0%; left: 59.4%;"></div>
+      <div class="sub-pump {{B27}}" data-bit="27" style="top: 96.0%; left: 69.8%;"></div>
+      <div class="sub-pump {{B28}}" data-bit="28" style="top: 96.0%; left: 79.8%;"></div>
+      <div class="sub-pump {{B29}}" data-bit="29" style="top: 96.0%; left: 90.2%;"></div>
+
+      <!-- 수위 표시 램프 (고수위/저수위 센서 하우징형) -->
+      <div class="level-sensor-group" style="top: 84.0%; left: 63.5%;">
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B30}}" data-bit="30"></div>
+          </div><span class="level-text">高</span>
+        </div>
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B31}}" data-bit="31"></div>
+          </div><span class="level-text">低</span>
+        </div>
+      </div>
+      <div class="level-sensor-group" style="top: 84.0%; left: 73.9%;">
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B32}}" data-bit="32"></div>
+          </div><span class="level-text">高</span>
+        </div>
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B33}}" data-bit="33"></div>
+          </div><span class="level-text">低</span>
+        </div>
+      </div>
+      <div class="level-sensor-group" style="top: 84.0%; left: 83.9%;">
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B34}}" data-bit="34"></div>
+          </div><span class="level-text">高</span>
+        </div>
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B35}}" data-bit="35"></div>
+          </div><span class="level-text">低</span>
+        </div>
+      </div>
+      <div class="level-sensor-group" style="top: 84.0%; left: 94.3%;">
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B36}}" data-bit="36"></div>
+          </div><span class="level-text">高</span>
+        </div>
+        <div class="level-sensor-row">
+          <div class="level-housing">
+            <div class="level-lamp {{B37}}" data-bit="37"></div>
+          </div><span class="level-text">低</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    var API_BASE = 'http://localhost:8000';
+
+    var bitApplied = [];
+    for (var bi = 0; bi < 38; bi++) {
+      bitApplied[bi] = null;
+    }
+
+    // 화면 확대/축소 방지
+    document.addEventListener('wheel', function (e) {
+      if (e.ctrlKey) { e.preventDefault(); }
+    }, { passive: false });
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=')) {
+        e.preventDefault();
+      }
+    });
+
+    function updateClock() {
+      var now = new Date();
+      var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      var yyyy = now.getFullYear();
+      var mm = String(now.getMonth() + 1).padStart(2, '0');
+      var dd = String(now.getDate()).padStart(2, '0');
+      var day = days[now.getDay()];
+      var hh = String(now.getHours()).padStart(2, '0');
+      var mi = String(now.getMinutes()).padStart(2, '0');
+      var ss = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('clock').innerText = yyyy + '/' + mm + '/' + dd + ' (' + day + ') ' + hh + ':' + mi + ':' + ss;
+
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function applyBitChange(i, val) {
+      var els = document.querySelectorAll('[data-bit="' + i + '"]');
+      for (var j = 0; j < els.length; j++) {
+        var el = els[j];
+        if (i < 30) {
+          el.classList.toggle('running', val);
+          el.classList.toggle('paused', !val);
+        } else {
+          el.classList.toggle('on', val);
+          el.classList.toggle('off', !val);
+        }
+      }
+    }
+
+    function updateWordUI(i, val) {
+      var els = document.querySelectorAll('[data-word="' + i + '"]');
+      for (var j = 0; j < els.length; j++) {
+        var el = els[j];
+        var unit = el.getAttribute('data-unit') || '';
+        el.textContent = Number(val).toFixed(1) + ' ' + unit;
+      }
+    }
+
+    function applyData(data) {
+      var bits = data.bits || [];
+      for (var i = 0; i < 38; i++) {
+        var val = !!bits[i];
+        if (val !== bitApplied[i]) {
+          bitApplied[i] = val;
+          applyBitChange(i, val);
+        }
+      }
+      var words = data.words || [];
+      for (var i = 0; i < 11; i++) {
+        updateWordUI(i, words[i] || 0);
+      }
+    }
+
+    function pollData() {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', API_BASE + '/realtime?_=' + Date.now(), true);
+      xhr.timeout = 3000;
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          try {
+            var data = JSON.parse(xhr.responseText);
+            applyData(data);
+          } catch (e) {}
+        }
+      };
+      xhr.onerror = function () {};
+      xhr.ontimeout = function () {};
+      xhr.send();
+    }
+
+    setInterval(pollData, 1000);
+    pollData();
+  </script>
+</body>
+
+</html>
