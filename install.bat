@@ -1,8 +1,8 @@
 @echo off
-title MECOM HMI Installer
+title MECOM HMI ver02 Installer
 color 0B
 echo ==========================================
-echo  MECOM HMI System Installer
+echo  MECOM HMI ver02 System Installer
 echo ==========================================
 echo.
 
@@ -128,7 +128,7 @@ echo [5/5] Creating shortcuts...
 
 > start_hmi.bat (
 echo @echo off
-echo title MECOM HMI System
+echo title MECOM HMI ver02 System
 echo color 0A
 echo.
 echo cd /d "%%~dp0"

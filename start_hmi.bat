@@ -1,5 +1,5 @@
 @echo off
-title MECOM HMI System
+title MECOM HMI ver02 System
 color 0A
 
 cd /d "%~dp0"
